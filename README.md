@@ -16,12 +16,13 @@ pub fn main() {
     |> immutable_lru.set("2", ["second"])
     |> immutable_lru.set("3", ["third"])
 
-  let val = c
-  |> immutable_lru.get("3")
-  |> result.map(with: fn(x) {
-    let #(_, val) = x
-    val
-  })
+  let val =
+    c
+    |> immutable_lru.get("3")
+    |> result.map(with: fn(x) {
+      let #(_, val) = x
+      val
+    })
   // val == ["third"]
 }
 ```

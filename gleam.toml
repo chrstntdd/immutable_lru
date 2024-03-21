@@ -1,10 +1,10 @@
 name = "immutable_lru"
-version = "1.0.0"
+version = "1.0.1"
 
 
-description = "Immuable LRU cache"
+description = "Immutable LRU cache"
 licences = ["MIT"]
-repository = { type = "github", user = "chrsnstdd", repo = "immutable_lru" }
+repository = { type = "github", user = "chrstntdd", repo = "immutable_lru" }
 
 
 [dependencies]

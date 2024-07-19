@@ -1,7 +1,7 @@
-import gleeunit
-import gleeunit/should
 import gleam/list
 import gleam/result
+import gleeunit
+import gleeunit/should
 import immutable_lru
 
 pub fn main() {

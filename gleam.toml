@@ -5,6 +5,7 @@ version = "1.0.1"
 description = "Immutable LRU cache"
 licences = ["MIT"]
 repository = { type = "github", user = "chrstntdd", repo = "immutable_lru" }
+gleam = ">= 0.32.0"
 
 
 [dependencies]

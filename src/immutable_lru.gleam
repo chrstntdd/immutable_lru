@@ -67,21 +67,15 @@ pub fn new(max: Int) -> LruCache(k, v) {
 ///  // t == True
 /// ```
 ///
-pub fn get(c: LruCache(k, v), key: k) -> Result(#(LruCache(k, v), v), Nil) {
-  case c {
-    LruCache(active, stale, _, _) -> {
-      let value_from_active =
-        active
-        |> dict.get(key)
-        |> result.map(with: fn(val) { #(c, val) })
-      let value_from_stale =
-        stale
-        |> dict.get(key)
-        |> result.map(with: fn(val) { #(keep(c, key, val), val) })
-
-      result.or(value_from_active, value_from_stale)
-    }
-  }
+pub fn get(cache: LruCache(k, v), key: k) -> Result(#(LruCache(k, v), v), Nil) {
+  cache.active
+  |> dict.get(key)
+  |> result.map(with: fn(val) { #(cache, val) })
+  |> result.lazy_or(fn() {
+    cache.stale
+    |> dict.get(key)
+    |> result.map(with: fn(val) { #(keep(cache, key, val), val) })
+  })
 }
 
 /// Retrieve a value from the cache or panic
@@ -110,22 +104,18 @@ pub fn get_exn(c: LruCache(k, v), key: k) -> #(LruCache(k, v), v) {
   }
 }
 
-fn keep(c: LruCache(k, v), key: k, value: v) {
-  case c {
-    LruCache(active, stale, max, key_count) -> {
-      let key_count = key_count + 1
-      let parts = case key_count > max {
-        True -> {
-          #(dict.new(), active, 1)
-        }
-        False -> {
-          #(active, stale, key_count)
-        }
-      }
-      let active = dict.insert(parts.0, key, value)
-      LruCache(active, parts.1, max, parts.2)
+fn keep(cache: LruCache(k, v), key: k, value: v) -> LruCache(k, v) {
+  let key_count = cache.key_count + 1
+  let #(active, stale, key_count) = case key_count > cache.max {
+    True -> {
+      #(dict.new(), cache.active, 1)
+    }
+    False -> {
+      #(cache.active, cache.stale, key_count)
     }
   }
+  let active = dict.insert(active, key, value)
+  LruCache(..cache, active: active, stale: stale, key_count: key_count)
 }
 
 /// Add an entry into the cache
@@ -145,18 +135,14 @@ fn keep(c: LruCache(k, v), key: k, value: v) {
 ///  // t == True
 /// ```
 ///
-pub fn set(c: LruCache(k, v), key: k, value: v) -> LruCache(k, v) {
-  case c {
-    LruCache(active, stale, max, key_count) -> {
-      case dict.has_key(active, key) {
-        True -> {
-          let next_active = dict.insert(active, key, value)
-          LruCache(next_active, stale, max, key_count)
-        }
-        False -> {
-          keep(c, key, value)
-        }
-      }
+pub fn set(cache: LruCache(k, v), key: k, value: v) -> LruCache(k, v) {
+  case dict.has_key(cache.active, key) {
+    True -> {
+      let active = dict.insert(cache.active, key, value)
+      LruCache(..cache, active: active)
+    }
+    False -> {
+      keep(cache, key, value)
     }
   }
 }
@@ -174,18 +160,14 @@ pub fn set(c: LruCache(k, v), key: k, value: v) -> LruCache(k, v) {
 /// // -> True
 /// ```
 ///
-pub fn has(c: LruCache(k, v), key: k) -> Bool {
-  case c {
-    LruCache(active, stale, _, _) -> {
-      result.or(
-        active
-          |> dict.get(key),
-        stale
-          |> dict.get(key),
-      )
-      |> result.is_ok
-    }
-  }
+pub fn has(cache: LruCache(k, v), key: k) -> Bool {
+  cache.active
+  |> dict.get(key)
+  |> result.lazy_or(fn() {
+    cache.stale
+    |> dict.get(key)
+  })
+  |> result.is_ok
 }
 
 /// Clear all entries in the cache. 
@@ -211,10 +193,6 @@ pub fn has(c: LruCache(k, v), key: k) -> Bool {
 ///  // is_mem == False
 /// ```
 ///
-pub fn clear(c: LruCache(k, v)) -> LruCache(k, v) {
-  case c {
-    LruCache(_, _, max, _) -> {
-      new(max)
-    }
-  }
+pub fn clear(cache: LruCache(k, v)) -> LruCache(k, v) {
+  new(cache.max)
 }
